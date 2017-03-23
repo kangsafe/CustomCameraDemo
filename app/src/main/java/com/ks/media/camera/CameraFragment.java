@@ -17,7 +17,6 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.text.format.DateFormat;
@@ -162,6 +161,13 @@ public class CameraFragment extends Fragment implements View.OnClickListener, Ca
             animSet.start();
             mCameraTake.setRotation(0);
         }
+        //裁切
+        if (iscrop) {
+            if (rotation) {//是否是旋转横屏
+                mCropperStart.setRotation(0);
+                mCropperHint.setRotation(180);
+            }
+        }
         mSensorManager.registerListener(this, mAccel, SensorManager.SENSOR_DELAY_UI);
     }
 
@@ -174,6 +180,11 @@ public class CameraFragment extends Fragment implements View.OnClickListener, Ca
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         Log.e(TAG, "onConfigurationChanged");
+        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            rotation = true;
+        } else {
+            rotation = false;
+        }
         super.onConfigurationChanged(newConfig);
     }
 
@@ -212,7 +223,7 @@ public class CameraFragment extends Fragment implements View.OnClickListener, Ca
         if (rotation) {
             bitmap = Utils.rotate(cropperImage.getBitmap(), -90);
         } else {
-            bitmap = Utils.rotate(cropperImage.getBitmap(), 0);
+            bitmap = cropperImage.getBitmap();
         }
         // 系统时间
         long dateTaken = System.currentTimeMillis();
@@ -298,7 +309,9 @@ public class CameraFragment extends Fragment implements View.OnClickListener, Ca
             //准备截图
             try {
                 mCropImageView.setImageBitmap(MediaStore.Images.Media.getBitmap(getActivity().getContentResolver(), source));
-//            mCropImageView.rotateImage(90);
+                if (!rotation) {
+                    mCropImageView.rotateImage(90);
+                }
             } catch (IOException e) {
                 Log.e(TAG, e.getMessage());
             }

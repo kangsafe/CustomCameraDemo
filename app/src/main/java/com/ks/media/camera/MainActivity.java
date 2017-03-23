@@ -30,7 +30,7 @@ public class MainActivity extends Activity {
         Intent intent = new Intent("com.ks.media.action.IMAGE_CAPTURE");
         String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/EsoNote/cropper/";
         intent.putExtra(MediaStore.EXTRA_OUTPUT, path);
-        intent.putExtra("rotation", false);
+        intent.putExtra("rotation", true);
         intent.putExtra("isline",true);
         intent.putExtra("istips",true);
         intent.putExtra("tips","这是标题\n包含子标题");
