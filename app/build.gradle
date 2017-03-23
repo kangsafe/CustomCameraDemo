@@ -4,7 +4,7 @@ android {
     compileSdkVersion 25
     buildToolsVersion "25.0.2"
     defaultConfig {
-        applicationId "com.bbk.lling.camerademo"
+        applicationId "com.ks.media.camera"
         minSdkVersion 14
         targetSdkVersion 25
         versionCode 1
@@ -16,10 +16,11 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-    android { compileOptions.encoding = "GBK" }
 }
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.android.support:appcompat-v7:25.2.0'
+    compile "com.android.support:support-v4:25.2.0"
+    compile "com.android.support:support-v13:25.2.0"
 }

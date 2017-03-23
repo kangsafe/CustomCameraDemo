@@ -10,7 +10,7 @@
         tools:ignore="contentDescription"
         android:adjustViewBounds="true" />
 
-    <com.bbk.lling.camerademo.cropper.cropwindow.CropOverlayView
+    <com.ks.media.camera.cropper.cropwindow.CropOverlayView
         android:id="@+id/CropOverlayView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />

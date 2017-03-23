@@ -22,6 +22,7 @@
             android:layout_centerInParent="true"/>
         <!--网格参考线-->
         <com.ks.media.camera.camare.ReferenceLine
+            android:id="@+id/vcamera_line"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
 
@@ -33,7 +34,7 @@
             android:layout_centerInParent="true"
             android:textColor="#45e0e0e0"
             android:lineSpacingMultiplier="2.0"
-            android:text="请横屏拍照\n题目文字尽量与参考线对齐"/>
+            android:text="请尽量与参考线对齐"/>
 
         <RelativeLayout
             android:layout_width="match_parent"
@@ -41,18 +42,19 @@
             android:layout_alignParentBottom="true"
             android:padding="12dp">
             <ImageView
+                android:id="@+id/vcamera_close"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:padding="12dp"
                 android:src="@drawable/ic_close_selector"
-                android:layout_alignParentRight="true"
-                android:onClick="close"/>
+                android:layout_alignParentRight="true"/>
             <ImageView
+                android:id="@+id/vcamera_take"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:layout_centerInParent="true"
-                android:onClick="takePhoto"
                 android:padding="12dp"
+                android:rotation="-90"
                 android:src="@drawable/ic_takephoto_selector"/>
         </RelativeLayout>
 
@@ -88,16 +90,16 @@
             android:layout_height="wrap_content"
             android:padding="12dp">
             <ImageView
+                android:id="@+id/vcropper_close"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:padding="12dp"
-                android:src="@drawable/ic_close_selector"
-                android:onClick="closeCropper"/>
+                android:src="@drawable/ic_close_selector"/>
             <ImageView
+                android:id="@+id/vcropper_start"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:layout_alignParentRight="true"
-                android:onClick="startCropper"
                 android:padding="12dp"
                 android:src="@drawable/ic_ok_selector"/>
         </RelativeLayout>

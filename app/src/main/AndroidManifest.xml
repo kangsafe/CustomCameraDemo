@@ -1,32 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.bbk.lling.camerademo" >
+    package="com.ks.media.camera">
 
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:theme="@style/AppTheme" >
+        android:theme="@style/AppTheme">
         <activity
-            android:name=".MainActivity"
-            android:label="@string/app_name" >
+            android:name="com.ks.media.camera.MainActivity"
+            android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
         <activity
-            android:name=".TakePhoteActivity"
+            android:name="com.ks.media.camera.TakePhoteActivity"
+            android:configChanges="orientation|keyboard|keyboardHidden|screenSize"
             android:label="@string/title_activity_take_phote"
-            android:screenOrientation="nosensor"
-            android:configChanges="orientation|keyboard|keyboardHidden|screenSize">
+            android:screenOrientation="nosensor">
+
         </activity>
         <activity
-            android:name=".ShowCropperedActivity"
-            android:label="@string/title_activity_show_croppered" >
+            android:name="com.ks.media.camera.TakePhoto2Activity"
+            android:configChanges="orientation|keyboard|keyboardHidden|screenSize"
+            android:label="@string/title_activity_take_phote"
+            android:screenOrientation="nosensor"></activity>
+        <activity
+            android:name="com.ks.media.camera.ShowCropperedActivity"
+            android:label="@string/title_activity_show_croppered"></activity>
+        <activity android:name=".ImageCaptureActivity">
+            <intent-filter>
+                <!-- 自定义的action-->
+                <action android:name="com.ks.media.action.IMAGE_CAPTURE" />
+                <!--必须加上这个，否则下面无法直接使用自定的action-->
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
         </activity>
     </application>
 
