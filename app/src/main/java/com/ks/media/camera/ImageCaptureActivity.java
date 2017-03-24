@@ -55,7 +55,7 @@ public class ImageCaptureActivity extends Activity {
             Fragment fragment = null;
             //api 21即android 5.0以上
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                fragment = Camera2BasicFragment.newInstance();
+                fragment = Camera2Fragment.newInstance();
             } else {
                 fragment = CameraFragment.newInstance();
             }

@@ -34,7 +34,10 @@
         <activity
             android:name="com.ks.media.camera.ShowCropperedActivity"
             android:label="@string/title_activity_show_croppered"></activity>
-        <activity android:name=".ImageCaptureActivity">
+        <activity
+            android:name=".ImageCaptureActivity"
+            android:configChanges="orientation|keyboard|keyboardHidden|screenSize"
+            android:screenOrientation="nosensor">
             <intent-filter>
                 <!-- 自定义的action-->
                 <action android:name="com.ks.media.action.IMAGE_CAPTURE" />

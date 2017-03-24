@@ -184,15 +184,19 @@ public class CameraPreview extends SurfaceView implements
 		if (camera != null) {
 			Camera.Parameters p = camera.getParameters();
 
-			setParameters(p);
-
 			try {
+				setParameters(p);
 				camera.setParameters(p);
 			} catch (Exception e) {
+				e.printStackTrace();
 				Camera.Size previewSize = findBestPreviewSize(p);
 				p.setPreviewSize(previewSize.width, previewSize.height);
 				p.setPictureSize(previewSize.width, previewSize.height);
-				camera.setParameters(p);
+				try {
+					camera.setParameters(p);
+				}catch (Exception e1){
+					e1.printStackTrace();
+				}
 			}
 		}
 	}
