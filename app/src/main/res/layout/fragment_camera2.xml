@@ -93,8 +93,7 @@
                 android:layout_centerInParent="true"
                 android:layout_marginBottom="8dp"
                 android:text="一次只能提交一道题"
-                android:textColor="#45ffffff"
-                android:visibility="gone" />
+                android:textColor="#45ffffff" />
 
             <ImageView
                 android:id="@+id/vcropper_start"

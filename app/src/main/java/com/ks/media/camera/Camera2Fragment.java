@@ -8,8 +8,11 @@ import android.app.DialogFragment;
 import android.app.Fragment;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
 import android.graphics.Matrix;
 import android.graphics.Point;
@@ -32,6 +35,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Message;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
@@ -53,10 +57,14 @@ import android.widget.Toast;
 
 import com.ks.media.camera.camare.ReferenceLine;
 import com.ks.media.camera.cropper.CropImageView;
+import com.ks.media.camera.cropper.cropwindow.handle.Handle;
+import com.ks.media.camera.utils.Utils;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -91,6 +99,7 @@ public class Camera2Fragment extends Fragment
      */
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
     private static final int REQUEST_CAMERA_PERMISSION = 1;
+    private static final int REQUEST_STORAGE_PERMISSION = 2;
     private static final String FRAGMENT_DIALOG = "dialog";
 
     static {
@@ -140,10 +149,7 @@ public class Camera2Fragment extends Fragment
      */
     private static final int MAX_PREVIEW_HEIGHT = 1080;
 
-    /**
-     * {@link TextureView.SurfaceTextureListener} handles several lifecycle events on a
-     * {@link TextureView}.
-     */
+    //Surface预览监听
     private final TextureView.SurfaceTextureListener mSurfaceTextureListener
             = new TextureView.SurfaceTextureListener() {
 
@@ -255,15 +261,15 @@ public class Camera2Fragment extends Fragment
 
         @Override
         public void onImageAvailable(ImageReader reader) {
-            mFile = new File(PATH, DateFormat.format("yyyyMMddHHmmss", System.currentTimeMillis()).toString() + ".jpg");
-            if (!mFile.exists()) {
-                mFile.mkdirs();
-                try {
-                    mFile.createNewFile();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+//            mFile = new File(PATH, DateFormat.format("yyyyMMddHHmmss", System.currentTimeMillis()).toString() + ".jpg");
+//            if (!mFile.exists()) {
+//                mFile.mkdirs();
+//                try {
+//                    mFile.createNewFile();
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            }
             mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage(), mFile));
         }
 
@@ -520,16 +526,33 @@ public class Camera2Fragment extends Fragment
         }
     }
 
+    private void requestStroagePermission() {
+        if (FragmentCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+            new ConfirmationStorageDialog().show(getChildFragmentManager(), FRAGMENT_DIALOG);
+        } else {
+            FragmentCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_STORAGE_PERMISSION);
+        }
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
-        if (requestCode == REQUEST_CAMERA_PERMISSION) {
-            if (grantResults.length != 1 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-                ErrorDialog.newInstance(getString(R.string.request_permission))
-                        .show(getChildFragmentManager(), FRAGMENT_DIALOG);
-            }
-        } else {
-            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+            case REQUEST_CAMERA_PERMISSION:
+                if (grantResults.length != 1 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                    ErrorDialog.newInstance(getString(R.string.request_permission))
+                            .show(getChildFragmentManager(), FRAGMENT_DIALOG);
+                }
+                break;
+            case REQUEST_STORAGE_PERMISSION:
+                if (grantResults.length != 1 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                    ErrorDialog.newInstance(getString(R.string.request_permission_storage))
+                            .show(getChildFragmentManager(), FRAGMENT_DIALOG);
+                }
+                break;
+            default:
+                super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+                break;
         }
     }
 
@@ -697,18 +720,14 @@ public class Camera2Fragment extends Fragment
         }
     }
 
-    /**
-     * Starts a background thread and its {@link Handler}.
-     */
+    //开启后台线程
     private void startBackgroundThread() {
         mBackgroundThread = new HandlerThread("CameraBackground");
         mBackgroundThread.start();
         mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
     }
 
-    /**
-     * Stops the background thread and its {@link Handler}.
-     */
+    //结束后台线程
     private void stopBackgroundThread() {
         mBackgroundThread.quitSafely();
         try {
@@ -817,6 +836,11 @@ public class Camera2Fragment extends Fragment
      * Initiate a still image capture.
      */
     private void takePicture() {
+        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+            requestStroagePermission();
+            return;
+        }
         lockFocus();
     }
 
@@ -825,6 +849,15 @@ public class Camera2Fragment extends Fragment
      */
     private void lockFocus() {
         try {
+            mFile = new File(PATH, DateFormat.format("yyyyMMddHHmmss", System.currentTimeMillis()).toString() + ".jpg");
+            if (!mFile.exists()) {
+                mFile.getParentFile().mkdirs();
+                try {
+                    mFile.createNewFile();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
             // This is how to tell the camera to lock focus.
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
                     CameraMetadata.CONTROL_AF_TRIGGER_START);
@@ -878,32 +911,7 @@ public class Camera2Fragment extends Fragment
             // Orientation
             int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, getOrientation(rotation));
-            //相机保存完成后回调方法
-            CameraCaptureSession.CaptureCallback CaptureCallback
-                    = new CameraCaptureSession.CaptureCallback() {
 
-                @Override
-                public void onCaptureCompleted(@NonNull CameraCaptureSession session,
-                                               @NonNull CaptureRequest request,
-                                               @NonNull TotalCaptureResult result) {
-//            showToast("Saved: " + mFile);
-                    Log.d(TAG, mFile.getAbsolutePath());
-                    unlockFocus();
-//            if (iscrop) {
-//                Bitmap bitmap = BitmapFactory.decodeFile(mFile.getAbsolutePath());
-//                //准备截图
-//                mCropImageView.setImageBitmap(bitmap);
-//                showCropperLayout();
-//            } else {
-//                Intent intent = new Intent();
-//                intent.putExtra("data", mFile.getAbsolutePath());
-//                getActivity().setResult(Activity.RESULT_OK, intent);
-//                closeCamera();
-//                Camera2Fragment.super.onDestroy();
-//                getActivity().finish();
-//            }
-                }
-            };
             mCaptureSession.stopRepeating();
             mCaptureSession.capture(captureBuilder.build(), CaptureCallback, null);
         } catch (CameraAccessException e) {
@@ -911,6 +919,46 @@ public class Camera2Fragment extends Fragment
         }
     }
 
+    //相机保存完成后回调方法
+    CameraCaptureSession.CaptureCallback CaptureCallback
+            = new CameraCaptureSession.CaptureCallback() {
+
+        @Override
+        public void onCaptureCompleted(@NonNull CameraCaptureSession session,
+                                       @NonNull CaptureRequest request,
+                                       @NonNull TotalCaptureResult result) {
+//            showToast("Saved: " + mFile);
+            Log.d(TAG, mFile.getAbsolutePath());
+            unlockFocus();
+            handler.sendEmptyMessage(0);
+        }
+    };
+
+    private Handler handler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case 0:
+                    if (iscrop) {
+                        Bitmap bitmap = BitmapFactory.decodeFile(mFile.getAbsolutePath());
+                        //准备截图
+                        mCropImageView.setImageBitmap(bitmap);
+                        showCropperLayout();
+                    } else {
+                        Intent intent = new Intent();
+                        intent.putExtra("data", mFile.getAbsolutePath());
+                        getActivity().setResult(Activity.RESULT_OK, intent);
+                        closeCamera();
+                        Camera2Fragment.super.onDestroy();
+                        getActivity().finish();
+                    }
+                    break;
+                default:
+                    super.handleMessage(msg);
+                    break;
+            }
+        }
+    };
 
     /**
      * Retrieves the JPEG orientation from the specified screen rotation.
@@ -970,38 +1018,68 @@ public class Camera2Fragment extends Fragment
      */
     public void startCropper() {
         //获取截图并旋转90度
-//        CropperImage cropperImage = mCropImageView.getCroppedImage();
-//        Log.e(TAG, cropperImage.getX() + "," + cropperImage.getY());
-//        Log.e(TAG, cropperImage.getWidth() + "," + cropperImage.getHeight());
-//        Bitmap bitmap;
-//        if (rotation) {
-//            bitmap = Utils.rotate(cropperImage.getBitmap(), -90);
-//        } else {
-//            bitmap = cropperImage.getBitmap();
-//        }
-//        // 系统时间
-//        long dateTaken = System.currentTimeMillis();
-//        // 图像名称
-//        String filename = android.text.format.DateFormat.format("yyyyMMddHHmmss", dateTaken)
-//                .toString() + ".jpg";
-//        Uri uri = insertImage(getActivity().getContentResolver(), filename, dateTaken, PATH, filename, bitmap, null);
-//        cropperImage.getBitmap().recycle();
-//        cropperImage.setBitmap(null);
-////        Intent intent = new Intent(getActivity(), ShowCropperedActivity.class);
-////        intent.setData(uri);
-////        intent.putExtra("path", PATH + filename);
-////        intent.putExtra("width", bitmap.getWidth());
-////        intent.putExtra("height", bitmap.getHeight());
-////        intent.putExtra("cropperImage", cropperImage);
-////        startActivity(intent);
-//        bitmap.recycle();
-//        Intent intent = new Intent();
-//        intent.putExtra("data", PATH + filename);
-//        getActivity().setResult(Activity.RESULT_OK, intent);
-//        finish();
-//        getActivity().overridePendingTransition(R.anim.fade_in,
-//                R.anim.fade_out);
-////        doAnimation(cropperImage);
+        CropperImage cropperImage = mCropImageView.getCroppedImage();
+        Log.e(TAG, cropperImage.getX() + "," + cropperImage.getY());
+        Log.e(TAG, cropperImage.getWidth() + "," + cropperImage.getHeight());
+        Bitmap bitmap;
+        if (rotation) {
+            bitmap = Utils.rotate(cropperImage.getBitmap(), -90);
+        } else {
+            bitmap = cropperImage.getBitmap();
+        }
+        // 系统时间
+        long dateTaken = System.currentTimeMillis();
+        // 图像名称
+        String filename = android.text.format.DateFormat.format("yyyyMMddHHmmss", dateTaken)
+                .toString() + ".jpg";
+        boolean issaved = saveImage(PATH, filename, bitmap);
+        cropperImage.getBitmap().recycle();
+        cropperImage.setBitmap(null);
+        bitmap.recycle();
+        if (issaved) {
+            Intent intent = new Intent();
+            intent.putExtra("data", PATH + filename);
+            getActivity().setResult(Activity.RESULT_OK, intent);
+        } else {
+            getActivity().setResult(Activity.RESULT_CANCELED);
+        }
+        closeCamera();
+        super.onDestroy();
+        getActivity().overridePendingTransition(R.anim.fade_in,
+                R.anim.fade_out);
+        getActivity().finish();
+//        doAnimation(cropperImage);
+    }
+
+    private boolean saveImage(String path, String filename, Bitmap bitmap) {
+        boolean issaved = false;
+        OutputStream outputStream = null;
+        try {
+            File dir = new File(path);
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
+            File file = new File(path, filename);
+            if (!file.exists()) {
+                if (file.createNewFile()) {
+                    outputStream = new FileOutputStream(file);
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
+                    issaved = true;
+                }
+            }
+        } catch (FileNotFoundException e) {
+            Log.e(TAG, e.getMessage());
+        } catch (IOException e) {
+            Log.e(TAG, e.getMessage());
+        } finally {
+            if (outputStream != null) {
+                try {
+                    outputStream.close();
+                } catch (Throwable t) {
+                }
+            }
+        }
+        return issaved;
     }
 
     @Override
@@ -1061,7 +1139,6 @@ public class Camera2Fragment extends Fragment
             buffer.get(bytes);
             FileOutputStream output = null;
             try {
-
                 output = new FileOutputStream(mFile);
                 output.write(bytes);
             } catch (IOException e) {
@@ -1157,4 +1234,35 @@ public class Camera2Fragment extends Fragment
         }
     }
 
+    /**
+     * Shows OK/Cancel confirmation dialog about camera permission.
+     */
+    public static class ConfirmationStorageDialog extends DialogFragment {
+
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            final Fragment parent = getParentFragment();
+            return new AlertDialog.Builder(getActivity())
+                    .setMessage(R.string.request_permission)
+                    .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            FragmentCompat.requestPermissions(parent,
+                                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                                    REQUEST_STORAGE_PERMISSION);
+                        }
+                    })
+                    .setNegativeButton(android.R.string.cancel,
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    Activity activity = parent.getActivity();
+                                    if (activity != null) {
+                                        activity.finish();
+                                    }
+                                }
+                            })
+                    .create();
+        }
+    }
 }
